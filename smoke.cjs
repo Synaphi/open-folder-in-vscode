@@ -81,6 +81,15 @@ assert(spec.args.length === 1 && spec.args[0] === folder, "folder is one argumen
 assert(spec.options.shell === false, "launch must not use a shell");
 assert(spec.command === (codeExe || "Code.exe"), "launch command");
 
+const many = locate.launchSpec("Code.exe", ["C:\\one", "C:\\two"]);
+assert(many.args.length === 2 && many.args[0] === "C:\\one" && many.args[1] === "C:\\two", "multi-root args");
+assert(!many.args.includes("--new-window"), "multi-root has no new-window flag");
+assert(many.options.shell === false, "multi-root is not a shell");
+const winUnique = locate.uniqueFolderPaths(["C:\\A", "c:\\a", "C:\\B"], "win32");
+assert(winUnique.length === 2 && winUnique[0] === "C:\\A" && winUnique[1] === "C:\\B", "windows path dedupe");
+const linuxUnique = locate.uniqueFolderPaths(["/A", "/a"], "linux");
+assert(linuxUnique.length === 2 && linuxUnique[0] === "/A" && linuxUnique[1] === "/a", "linux paths stay distinct");
+
 const winIo = {
   platform: "win32",
   env: {
@@ -169,15 +178,27 @@ const obsidian = {
   },
 };
 
+const missingDirs = new Set();
+
+function isVaultPath(filePath) {
+  const normalized = String(filePath).replace(/\//g, "\\").toLowerCase();
+  return normalized === "c:\\obsidian" || normalized.startsWith("c:\\obsidian\\");
+}
+
 const fsMock = {
   existsSync(filePath) {
+    if (missingDirs.has(filePath)) return false;
     const normalized = String(filePath).replace(/\//g, "\\").toLowerCase();
     if (normalized.endsWith("\\microsoft vs code\\code.exe")) return true;
-    if (filePath === folder) return true;
-    return false;
+    return isVaultPath(filePath);
   },
   statSync(filePath) {
-    if (filePath === folder) return { isDirectory: () => true };
+    if (missingDirs.has(filePath)) {
+      const error = new Error("missing");
+      error.code = "ENOENT";
+      throw error;
+    }
+    if (isVaultPath(filePath)) return { isDirectory: () => true };
     const error = new Error("missing");
     error.code = "ENOENT";
     throw error;
@@ -204,18 +225,19 @@ Module.prototype.require = function (id) {
 
 const pluginModule = require("./main.js");
 const PluginClass = pluginModule.default || pluginModule;
-let menuHandler = null;
+const menuHandlers = {};
 const app = {
   vault: {
     adapter: {
-      getFullPath() {
-        return folder;
+      getFullPath(vaultPath) {
+        if (!vaultPath) return "C:\\Obsidian";
+        return path.win32.join("C:\\Obsidian", String(vaultPath).replace(/\//g, "\\"));
       },
     },
   },
   workspace: {
-    on(_name, callback) {
-      menuHandler = callback;
+    on(name, callback) {
+      menuHandlers[name] = callback;
       return callback;
     },
   },
@@ -224,9 +246,10 @@ const app = {
 (async () => {
   const plugin = new PluginClass(app, { id: "open-folder-in-vscode" });
   await plugin.onload();
-  assert(typeof menuHandler === "function", "file menu handler registered");
+  assert(typeof menuHandlers["file-menu"] === "function", "file menu handler registered");
+  assert(typeof menuHandlers["files-menu"] === "function", "files menu handler registered");
 
-  function openMenu(file) {
+  function collectMenu(handler, payload) {
     const items = [];
     const menu = {
       addItem(callback) {
@@ -248,8 +271,16 @@ const app = {
         return menu;
       },
     };
-    menuHandler(menu, file);
+    handler(menu, payload);
     return items;
+  }
+
+  function openMenu(file) {
+    return collectMenu(menuHandlers["file-menu"], file);
+  }
+
+  function openFilesMenu(files) {
+    return collectMenu(menuHandlers["files-menu"], files);
   }
 
   async function flush() {
@@ -285,6 +316,40 @@ const app = {
   await flush();
   assert(launches.length === before, "missing custom path does not launch");
   assert(notices.at(-1) === i18n.translate("en", "pathMissing"), "missing path notice");
+
+  language = "ko";
+  plugin.settings.executable = "C:\\Program Files\\Microsoft VS Code\\Code.exe";
+  const multiItems = openFilesMenu([
+    new obsidian.TFolder("alpha"),
+    new obsidian.TFile("note.md"),
+    new obsidian.TFolder("beta"),
+    new obsidian.TFolder("alpha"),
+  ]);
+  assert(multiItems.length === 1, "multi selection has one item");
+  assert(multiItems[0].title === "VS Code로 열기", "multi menu title");
+  multiItems[0].click();
+  await flush();
+  assert(launches.at(-1).args.length === 2, "duplicate folder dropped");
+  assert(launches.at(-1).args[0] === "C:\\Obsidian\\alpha", "first selected folder");
+  assert(launches.at(-1).args[1] === "C:\\Obsidian\\beta", "second selected folder");
+  assert(launches.at(-1).options.shell === false, "multi launch is not a shell");
+  assert(!launches.at(-1).args.includes("--new-window"), "multi launch has no new-window flag");
+
+  assert(openFilesMenu([new obsidian.TFile("a.md"), new obsidian.TFile("b.md")]).length === 0, "files-only selection has no item");
+
+  const oneInMulti = openFilesMenu([new obsidian.TFolder("25. DutyFlow_Growth")]);
+  assert(oneInMulti.length === 1, "one folder in a multi menu still opens");
+  oneInMulti[0].click();
+  await flush();
+  assert(launches.at(-1).args.length === 1 && launches.at(-1).args[0] === folder, "one folder in files-menu");
+
+  missingDirs.add("C:\\Obsidian\\gone");
+  const beforeMissingFolder = launches.length;
+  openFilesMenu([new obsidian.TFolder("alpha"), new obsidian.TFolder("gone")])[0].click();
+  await flush();
+  assert(launches.length === beforeMissingFolder, "missing folder does not launch a partial workspace");
+  assert(notices.at(-1) === i18n.translate("ko", "noPath"), "missing folder notice");
+  missingDirs.delete("C:\\Obsidian\\gone");
 
   console.log("smoke ok");
 })().catch((error) => {

@@ -1,7 +1,7 @@
-import { Notice, Platform, Plugin, PluginSettingTab, Setting, TFolder, getLanguage } from "obsidian";
+import { Menu, Notice, Platform, Plugin, PluginSettingTab, Setting, TFolder, getLanguage } from "obsidian";
 import type { ExecFileSyncOptions } from "child_process";
 import type { DesktopIo } from "./locate";
-import { launchSpec, resolveConfigured, resolveFolder } from "./locate";
+import { launchSpec, resolveConfigured, resolveFolder, uniqueFolderPaths } from "./locate";
 import { translate } from "./i18n";
 
 interface Settings {
@@ -77,26 +77,46 @@ export default class OpenInVsCodePlugin extends Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
         if (!(file instanceof TFolder)) return;
-        menu.addItem((item) => {
-          item
-            .setTitle(text("menu"))
-            .setIcon("code")
-            .onClick(() => {
-              this.openFolder(file);
-            });
-        });
+        this.addOpenItem(menu, [file]);
+      }),
+    );
+    this.registerEvent(
+      this.app.workspace.on("files-menu", (menu, files) => {
+        const folders = files.filter((file): file is TFolder => file instanceof TFolder);
+        if (folders.length === 0) return;
+        this.addOpenItem(menu, folders);
       }),
     );
   }
 
-  openFolder(folder: TFolder): void {
+  private addOpenItem(menu: Menu, folders: TFolder[]): void {
+    menu.addItem((item) => {
+      item
+        .setTitle(text("menu"))
+        .setIcon("code")
+        .onClick(() => {
+          this.openFolders(folders);
+        });
+    });
+  }
+
+  openFolders(folders: TFolder[]): void {
     const io = desktopIo();
     if (!io) {
       new Notice(text("launchFailed"));
       return;
     }
-    const full = resolveFolder(this.app.vault.adapter, folder.path, io);
-    if (!full || !io.exists(full) || !io.isDirectory(full)) {
+    const resolved: string[] = [];
+    for (const folder of folders) {
+      const full = resolveFolder(this.app.vault.adapter, folder.path, io);
+      if (!full || !io.exists(full) || !io.isDirectory(full)) {
+        new Notice(text("noPath"));
+        return;
+      }
+      resolved.push(full);
+    }
+    const paths = uniqueFolderPaths(resolved, io.platform);
+    if (paths.length === 0) {
       new Notice(text("noPath"));
       return;
     }
@@ -110,7 +130,7 @@ export default class OpenInVsCodePlugin extends Plugin {
       new Notice(configured ? text("pathMissing") : text("notFound"));
       return;
     }
-    const spec = launchSpec(exe, full);
+    const spec = launchSpec(exe, paths);
     try {
       const child = io.spawn(spec.command, spec.args, spec.options);
       child.on("error", () => {

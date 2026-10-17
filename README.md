@@ -2,6 +2,8 @@
 
 Right-click a folder in the Obsidian file explorer and choose **Open in VS Code**. Visual Studio Code opens with that folder as the workspace.
 
+Ctrl-click or Shift-click several folders, then use the same command. Visual Studio Code opens those folders together as one multi-root workspace. Files in the selection are skipped. A single folder still opens as a normal folder window.
+
 The menu label follows Obsidian's display language. Every language in the [Obsidian app language list](https://github.com/obsidianmd/obsidian-translations#existing-languages) has its own strings, including Korean, English, Japanese, and Spanish. An unknown language falls back to English.
 
 This plugin is desktop-only. On Windows, macOS, and Linux it looks for a standard Visual Studio Code install, then for the `code` command on `PATH`. If the install lives somewhere else, set the executable path in the plugin settings. Leave that field empty to keep automatic detection.

@@ -41,5 +41,5 @@ jobs:
           tag="${GITHUB_REF#refs/tags/}"
           gh release create "$tag" \
             --title="$tag" \
-            --notes="Open a file-explorer folder in Visual Studio Code." \
+            --notes="Open one file-explorer folder, or several folders as one multi-root workspace, in Visual Studio Code." \
             main.js manifest.json styles.css

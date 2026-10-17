@@ -101,10 +101,30 @@ export function resolveConfigured(io: DesktopIo, configured: string): string | n
   return windowsExeNearCmd(io, trimmed) ?? trimmed;
 }
 
-export function launchSpec(exe: string, folder: string): LaunchSpec {
+/** Keep the first spelling of each path. Windows and macOS compare without case. */
+export function uniqueFolderPaths(paths: readonly string[], platform: string): string[] {
+  const seen = new Set<string>();
+  const folded = platform === "win32" || platform === "darwin";
+  const unique: string[] = [];
+  for (const entry of paths) {
+    const key = folded ? entry.toLowerCase() : entry;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(entry);
+  }
+  return unique;
+}
+
+/**
+ * One path opens that folder. Several paths open one multi-root workspace.
+ * No `--new-window`: the user's VS Code window setting still applies to a single folder,
+ * and several paths are one workspace either way.
+ */
+export function launchSpec(exe: string, folders: string | readonly string[]): LaunchSpec {
+  const args = typeof folders === "string" ? [folders] : [...folders];
   return {
     command: exe,
-    args: [folder],
+    args,
     options: {
       detached: true,
       stdio: "ignore",
