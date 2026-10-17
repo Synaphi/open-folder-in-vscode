@@ -27,7 +27,7 @@ jobs:
           npm test
 
       - name: Attest build provenance
-        uses: actions/attest@v2
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
             main.js
