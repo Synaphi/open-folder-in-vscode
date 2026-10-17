@@ -1,9 +1,9 @@
 {
   "id": "open-folder-in-vscode",
   "name": "Open Folder in VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.8.7",
-  "description": "Right-click one folder, or several folders, and open them in Visual Studio Code. Several folders open as one multi-root workspace.",
+  "description": "A very lightweight program. Right-click one folder, or several folders, and open them in Visual Studio Code. Several folders open as one multi-root workspace.",
   "author": "Synaphi",
   "authorUrl": "https://github.com/synaphi",
   "fundingUrl": "https://paypal.me/synaphi",

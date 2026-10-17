@@ -2,12 +2,15 @@
 
 # Open Folder in VS Code
 
+A very lightweight program. It adds one menu item and does not keep running afterward.
+
 Right-click a folder in the file explorer and open that folder in Visual Studio Code.
 
-**One job, done well.** The folder you clicked becomes the workspace. Not the whole vault, and not the note you had open.
+**One job, done well.** No background work and no extra views. The folder you clicked becomes the workspace. Not the whole vault, and not the note you had open.
 
 ## Why you'll like it
 
+- **Very light.** One context-menu item. It does not index notes, watch files, or talk to the network.
 - **The folder under the pointer.** One right-click, and Visual Studio Code opens with that folder as the workspace.
 - **Several folders, one window.** Ctrl-click or Shift-click folders, then use the same command. They open together as one multi-root workspace.
 - **Files stay put.** Notes in the selection are skipped. A folder selected twice is opened once. If one selected folder has no local path, nothing opens.
