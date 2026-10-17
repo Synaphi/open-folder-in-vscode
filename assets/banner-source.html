@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1280px; height: 600px; overflow: hidden; }
+body {
+  font-family: "Segoe UI Variable Display", "Segoe UI", Inter, system-ui, sans-serif;
+  color: #f3f0ff;
+  background: radial-gradient(900px 520px at 78% 40%, #2a1f4d 0%, #17122a 55%, #0f0c1c 100%);
+  position: relative;
+}
+.dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.left { position: absolute; left: 84px; top: 108px; width: 620px; }
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #c4b5fd;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: rgba(124,58,237,.16);
+  border: 1px solid rgba(167,139,250,.35);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+h1 {
+  font-size: 78px;
+  line-height: .96;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  margin-top: 22px;
+}
+h1 span { color: #a78bfa; }
+.tag {
+  margin-top: 26px;
+  font-size: 26px;
+  line-height: 1.35;
+  color: #d6d0ea;
+  font-weight: 500;
+}
+.tag b { color: #fff; font-weight: 700; }
+.by {
+  position: absolute;
+  left: 84px;
+  bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #bdb4d8;
+  font-size: 18px;
+}
+.by img { height: 78px; }
+.stage { position: absolute; right: 72px; top: 86px; width: 460px; height: 430px; }
+.tree {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 340px;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(167,139,250,.12);
+  overflow: hidden;
+  color: #dcdcdc;
+  font-size: 18px;
+}
+.hd {
+  padding: 16px 18px 12px;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid #2c2c2c;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+}
+.row .mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #6b7280;
+}
+.row.on { background: rgba(124,58,237,.35); color: #fff; }
+.row.on .mark { background: #a78bfa; }
+.row.file { color: #9a9a9a; }
+.menu {
+  position: absolute;
+  left: 168px;
+  top: 168px;
+  width: 250px;
+  background: #2b2b2b;
+  border: 1px solid #4a4a4a;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.45);
+  padding: 8px;
+}
+.mi {
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #c8c8c8;
+  font-size: 16px;
+}
+.mi.on { background: #7c3aed; color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="dots"></div>
+<div class="left">
+  <div class="eyebrow">Obsidian plugin</div>
+  <h1>Open Folder<br><span>in VS Code</span></h1>
+  <div class="tag">Right-click a folder. Or several.<br>They open as <b>one workspace</b>.</div>
+</div>
+<div class="by"><span>by</span><img src="synaphi-lockup-white.svg" alt="Synaphi"></div>
+<div class="stage">
+  <div class="tree">
+    <div class="hd">File explorer</div>
+    <div class="row"><span class="mark"></span>Projects</div>
+    <div class="row on"><span class="mark"></span>Notes</div>
+    <div class="row on"><span class="mark"></span>Assets</div>
+    <div class="row file"><span class="mark"></span>Welcome.md</div>
+  </div>
+  <div class="menu">
+    <div class="mi on">Open in VS Code</div>
+    <div class="mi">Rename</div>
+  </div>
+</div>
+</body>
+</html>
