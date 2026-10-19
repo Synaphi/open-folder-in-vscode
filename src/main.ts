@@ -4,12 +4,23 @@ import type { DesktopIo } from "./locate";
 import { launchSpec, resolveConfigured, resolveFolder, uniqueFolderPaths } from "./locate";
 import { translate } from "./i18n";
 
+// File explorer selection has no public API. Check these optional members
+// before handling a click, so incompatible versions keep their native behavior.
+interface SelectableExplorer {
+  containerEl: HTMLElement;
+  fileBeingRenamed?: unknown;
+  fileItems?: Record<string, { file: unknown; selfEl: HTMLElement }>;
+  tree?: { handleItemSelection?: (event: MouseEvent, item: unknown) => boolean };
+}
+
 interface Settings {
   executable: string;
+  ctrlClickSelection: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
   executable: "",
+  ctrlClickSelection: false,
 };
 
 function text(key: Parameters<typeof translate>[1]): string {
@@ -69,11 +80,16 @@ function desktopIo(): DesktopIo | null {
 
 export default class OpenInVsCodePlugin extends Plugin {
   settings: Settings = { ...DEFAULT_SETTINGS };
+  private selectionContainers = new WeakSet<HTMLElement>();
 
   async onload(): Promise<void> {
     const saved = (await this.loadData()) as Partial<Settings> | null;
     this.settings = { ...DEFAULT_SETTINGS, ...(saved ?? {}) };
     this.addSettingTab(new OpenInVsCodeSettingTab(this.app, this));
+    this.app.workspace.onLayoutReady(() => this.registerFolderSelection());
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => this.registerFolderSelection()),
+    );
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
         if (!(file instanceof TFolder)) return;
@@ -87,6 +103,41 @@ export default class OpenInVsCodePlugin extends Plugin {
         this.addOpenItem(menu, folders);
       }),
     );
+  }
+
+  private registerFolderSelection(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType("file-explorer")) {
+      const view = leaf.view as unknown as SelectableExplorer;
+      const container = view.containerEl;
+      if (this.selectionContainers.has(container)) continue;
+      this.selectionContainers.add(container);
+      this.registerDomEvent(container, "click", (event) => {
+        if (!this.settings.ctrlClickSelection || event.defaultPrevented
+          || event.button !== 0 || !event.ctrlKey || event.altKey) return;
+        const win = container.ownerDocument.defaultView;
+        if (!win || !(event.target instanceof win.Element)) return;
+        if (event.target.closest("input, textarea, [contenteditable='true']")) return;
+        const row = event.target.closest<HTMLElement>(".nav-folder-title");
+        if (!row || !container.contains(row)) return;
+        const path = row.getAttribute("data-path");
+        const item = path === null ? undefined : view.fileItems?.[path];
+        const tree = view.tree;
+        if (!item || item.selfEl !== row || !(item.file instanceof TFolder)
+          || view.fileBeingRenamed === item.file || typeof tree?.handleItemSelection !== "function") return;
+
+        // Reuse Obsidian's Alt-click selection (or Shift-click range selection)
+        // without dispatching a second DOM event. Consume the original click
+        // before either the folder title or disclosure arrow can toggle.
+        const selectionEvent = new win.MouseEvent("click", {
+          button: 0,
+          altKey: !event.shiftKey,
+          shiftKey: event.shiftKey,
+        });
+        if (!tree.handleItemSelection(selectionEvent, item)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }, { capture: true });
+    }
   }
 
   private addOpenItem(menu: Menu, folders: TFolder[]): void {
@@ -166,6 +217,15 @@ class OpenInVsCodeSettingTab extends PluginSettingTab {
             await this.plugin.saveData(this.plugin.settings);
           });
       });
+    new Setting(containerEl)
+      .setName(text("ctrlClickName"))
+      .setDesc(text("ctrlClickDesc"))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.ctrlClickSelection).onChange(async (value) => {
+          this.plugin.settings.ctrlClickSelection = value;
+          await this.plugin.saveData(this.plugin.settings);
+        });
+      });
   }
 
   getSettingDefinitions() {
@@ -179,15 +239,29 @@ class OpenInVsCodeSettingTab extends PluginSettingTab {
           placeholder: text("settingName"),
         },
       },
+      {
+        name: text("ctrlClickName"),
+        desc: text("ctrlClickDesc"),
+        control: {
+          type: "toggle" as const,
+          key: "ctrlClickSelection",
+        },
+      },
     ];
   }
 
   getControlValue(key: string): unknown {
     if (key === "executable") return this.plugin.settings.executable;
+    if (key === "ctrlClickSelection") return this.plugin.settings.ctrlClickSelection;
     return "";
   }
 
   async setControlValue(key: string, value: unknown): Promise<void> {
+    if (key === "ctrlClickSelection" && typeof value === "boolean") {
+      this.plugin.settings.ctrlClickSelection = value;
+      await this.plugin.saveData(this.plugin.settings);
+      return;
+    }
     if (key !== "executable" || typeof value !== "string") return;
     this.plugin.settings.executable = value.trim();
     await this.plugin.saveData(this.plugin.settings);

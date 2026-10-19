@@ -129,6 +129,9 @@ assert(
 
 const notices = [];
 const launches = [];
+const settingTabs = [];
+const toggleControls = [];
+let savedData = null;
 let language = "ko";
 const obsidian = {
   Platform: { isDesktop: true },
@@ -153,16 +156,20 @@ const obsidian = {
       this.app = app;
     }
     async loadData() {
-      return null;
+      return savedData;
     }
-    async saveData() {}
-    addSettingTab() {}
+    async saveData(data) {
+      savedData = { ...data };
+    }
+    addSettingTab(tab) { settingTabs.push(tab); }
     registerEvent() {}
+    registerDomEvent() {}
   },
   PluginSettingTab: class PluginSettingTab {
     constructor(app, plugin) {
       this.app = app;
       this.plugin = plugin;
+      this.containerEl = { empty() {} };
     }
   },
   Setting: class Setting {
@@ -173,6 +180,15 @@ const obsidian = {
       return this;
     }
     addText() {
+      return this;
+    }
+    addToggle(callback) {
+      const toggle = {
+        setValue(value) { this.value = value; return this; },
+        onChange(callback) { this.change = callback; return this; },
+      };
+      callback(toggle);
+      toggleControls.push(toggle);
       return this;
     }
   },
@@ -236,6 +252,8 @@ const app = {
     },
   },
   workspace: {
+    onLayoutReady(callback) { callback(); },
+    getLeavesOfType() { return []; },
     on(name, callback) {
       menuHandlers[name] = callback;
       return callback;
@@ -245,6 +263,26 @@ const app = {
 
 (async () => {
   const plugin = new PluginClass(app, { id: "open-folder-in-vscode" });
+  await plugin.onload();
+  assert(plugin.settings.ctrlClickSelection === false, "Ctrl selection defaults to off");
+  const settingsTab = settingTabs.at(-1);
+  settingsTab.display();
+  assert(toggleControls.at(-1).value === false, "settings toggle defaults to off");
+  await toggleControls.at(-1).change(true);
+  assert(plugin.settings.ctrlClickSelection === true && savedData.ctrlClickSelection === true, "legacy toggle saves enabled option");
+  const reloaded = new PluginClass(app, { id: "open-folder-in-vscode" });
+  await reloaded.onload();
+  assert(reloaded.settings.ctrlClickSelection === true, "Ctrl selection survives reload");
+  assert(settingsTab.getSettingDefinitions().some((setting) => setting.control.key === "ctrlClickSelection" && setting.control.type === "toggle"), "declarative settings include the toggle");
+  await settingsTab.setControlValue("ctrlClickSelection", false);
+  assert(settingsTab.getControlValue("ctrlClickSelection") === false && savedData.ctrlClickSelection === false, "declarative toggle saves disabled option");
+  await settingsTab.setControlValue("ctrlClickSelection", "true");
+  assert(plugin.settings.ctrlClickSelection === false, "ignore invalid toggle values");
+  savedData = { executable: "C:\\custom\\Code.exe" };
+  const upgraded = new PluginClass(app, { id: "open-folder-in-vscode" });
+  await upgraded.onload();
+  assert(upgraded.settings.ctrlClickSelection === false && upgraded.settings.executable === savedData.executable, "existing settings retain path and default Ctrl off");
+  savedData = null;
   await plugin.onload();
   assert(typeof menuHandlers["file-menu"] === "function", "file menu handler registered");
   assert(typeof menuHandlers["files-menu"] === "function", "files menu handler registered");

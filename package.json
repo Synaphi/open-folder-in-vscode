@@ -1,6 +1,6 @@
 {
   "name": "open-folder-in-vscode",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A very lightweight program. Right-click one folder, or several folders, and open them in Visual Studio Code. Several folders open as one multi-root workspace.",
   "main": "main.js",
   "scripts": {

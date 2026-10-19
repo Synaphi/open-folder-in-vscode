@@ -6,11 +6,14 @@ export const KEYS = [
   "noPath",
   "settingName",
   "settingDesc",
+  "ctrlClickName",
+  "ctrlClickDesc",
 ] as const;
 
 export type StringKey = (typeof KEYS)[number];
 
-type Table = Record<StringKey, string>;
+type Table = Record<Exclude<StringKey, "ctrlClickName" | "ctrlClickDesc">, string>
+  & Partial<Record<"ctrlClickName" | "ctrlClickDesc", string>>;
 
 /** Language codes match the Obsidian app language list. */
 const STRINGS: Record<string, Table> = {
@@ -22,6 +25,8 @@ const STRINGS: Record<string, Table> = {
     noPath: "This folder has no local path.",
     settingName: "VS Code executable",
     settingDesc: "Leave empty to detect Visual Studio Code automatically.",
+    ctrlClickName: "Select folders with Ctrl-click",
+    ctrlClickDesc: "Off by default: use Alt-click to select folders. Turn on to also use Ctrl-click without expanding or collapsing folders. Alt-click still works.",
   },
   "en-gb": {
     menu: "Open in VS Code",
@@ -40,6 +45,8 @@ const STRINGS: Record<string, Table> = {
     noPath: "이 폴더의 로컬 경로를 알 수 없습니다.",
     settingName: "VS Code 실행 파일",
     settingDesc: "비워 두면 Visual Studio Code를 자동으로 찾습니다.",
+    ctrlClickName: "Ctrl+클릭으로도 폴더 다중 선택",
+    ctrlClickDesc: "기본은 꺼짐이며 Alt+클릭으로 폴더를 선택합니다. 켜면 Ctrl+클릭으로도 폴더를 펼치거나 접지 않고 선택·해제할 수 있습니다. Alt+클릭도 계속 사용할 수 있습니다.",
   },
   ja: {
     menu: "VS Codeで開く",
@@ -693,5 +700,5 @@ export function canonicalLanguage(language: string): string {
 
 export function translate(language: string, key: StringKey): string {
   const table = STRINGS[canonicalLanguage(language)] ?? STRINGS.en;
-  return table[key] || STRINGS.en[key];
+  return table[key] || STRINGS.en[key] || key;
 }

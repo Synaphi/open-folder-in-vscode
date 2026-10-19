@@ -2,7 +2,7 @@
 
 # Open Folder in VS Code
 
-A very lightweight program. It adds one menu item and does not keep running afterward.
+A very lightweight program. It adds one menu item, with no indexing, network requests, or background jobs.
 
 Right-click a folder in the file explorer and open that folder in Visual Studio Code.
 
@@ -12,7 +12,7 @@ Right-click a folder in the file explorer and open that folder in Visual Studio 
 
 - **Very light.** One context-menu item. It does not index notes, watch files, or talk to the network.
 - **The folder under the pointer.** One right-click, and Visual Studio Code opens with that folder as the workspace.
-- **Several folders, one window.** Ctrl-click or Shift-click folders, then use the same command. They open together as one multi-root workspace.
+- **Several folders, one window.** Alt-click folder names to add or remove them from the selection without expanding or collapsing them. Shift-click selects a range. Then use the same command to open them together as one multi-root workspace.
 - **Files stay put.** Notes in the selection are skipped. A folder selected twice is opened once. If one selected folder has no local path, nothing opens.
 - **It finds Visual Studio Code.** A standard install, then the `code` command. Set a path in settings if the install lives somewhere else. A missing path is reported. It does not guess another one.
 - **Your language.** The menu follows the display language. Korean, Japanese, Spanish, and the rest of the app language list are included. An unknown language falls back to English.
@@ -21,7 +21,9 @@ Right-click a folder in the file explorer and open that folder in Visual Studio 
 
 1. In the file explorer, right-click a folder.
 2. Choose **Open in VS Code** (한국어: **VS Code로 열기**).
-3. To open more than one folder, select them first, then use the same command.
+3. To open more than one folder, hold **Alt** and click each folder name (use **Shift-click** for a range), then right-click a selected folder and use the same command.
+
+Prefer Ctrl-click? In **Settings → Open Folder in VS Code**, enable **Select folders with Ctrl-click** (한국어: **Ctrl+클릭으로도 폴더 다중 선택**). This option is **off by default**. When enabled, Ctrl-click adds or removes folders from the selection without expanding or collapsing them. Alt-click continues to work, and Ctrl+Shift-click selects a range.
 
 Desktop only. Windows, macOS, and Linux.
 
